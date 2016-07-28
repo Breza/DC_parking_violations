@@ -27,6 +27,52 @@ http://opendata.dc.gov/datasets/7e688a52e65d49c0beef48289860f465_0
 http://opendata.dc.gov/datasets/2e967e9053144a309680fccea0f7b4e1_11
 http://opendata.dc.gov/datasets/9b040759c7264e59b8943fea0f081725_10
 
+## Analysis
+When working with geospatial data, many people think every analysis should be a map. That approach can be useful, but shapefiles often contain valuable data.
+
+
+
+```{r setup}
+library(magrittr)
+library(ggplot2)
+library(scales)
+library(ggthemes)
+library(dplyr)
+library(rgdal)
+library(choroplethr)
+
+
+library(lubridate)
+
+# Unzip the files
+unzip("./data/Parking_Violations_in_April_2016.zip", exdir = "./data", overwrite = TRUE)
+
+# Read shapefiles
+april16 <- readOGR(dsn = "./data" , layer = "Parking_Violations_in_April_2016")
+
+```
+
+Let's dive into the data! Each parking ticket records the state of the offending car. As you'd expect, most ticketed cars come from the DC area, but nearby Maryland eclipses DC for first place.
+```{r states}
+
+count(april16$RP_PLATE_S) %>%
+  tbl_df %>%
+  setNames(c("State", "Tickets")) %>%
+  dplyr::arrange(desc(Tickets)) %>%
+  top_n(3) %>%
+  ggplot(., aes(x = State, y = Tickets)) +
+  geom_bar(stat="identity") +
+  ggtitle("Most frequent states") +
+  theme_bw()
+
+state.name[match(april16$RP_PLATE_S, state.abb)] %>% tolower %>%
+  table %>% 
+  data.frame %>%
+  setNames(c("region", "value")) %>% state_choropleth
+
+```
+
+
 # Default language (will delete later)
 ## GitHub Documents
 
@@ -44,7 +90,7 @@ summary(cars)
 
 You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
+```{r pressure, echo=TRUE}
 plot(pressure)
 ```
 

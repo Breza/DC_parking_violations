@@ -19,6 +19,38 @@ Parking tickets. The dread of city dwellers everywhere. The Washington DC govern
 
 <http://opendata.dc.gov/datasets/977602b156f74e41ae2dabbfaca42e20_3> <http://opendata.dc.gov/datasets/825f603d4cfc41fe9cf9ee74c359f893_2> <http://opendata.dc.gov/datasets/150cf72502b344448d900a4f1d779b3a_1> <http://opendata.dc.gov/datasets/7e688a52e65d49c0beef48289860f465_0> <http://opendata.dc.gov/datasets/2e967e9053144a309680fccea0f7b4e1_11> <http://opendata.dc.gov/datasets/9b040759c7264e59b8943fea0f081725_10>
 
+Analysis
+--------
+
+When working with geospatial data, many people think every analysis should be a map. That approach can be useful, but shapefiles often contain valuable data.
+
+\`\`\`{r setup} library(magrittr) library(ggplot2) library(scales) library(ggthemes) library(dplyr) library(rgdal) library(choroplethr)
+
+library(lubridate)
+
+Unzip the files
+===============
+
+unzip("./data/Parking\_Violations\_in\_April\_2016.zip", exdir = "./data", overwrite = TRUE)
+
+Read shapefiles
+===============
+
+april16 &lt;- readOGR(dsn = "./data" , layer = "Parking\_Violations\_in\_April\_2016")
+
+\`\`\`
+
+Let's dive into the data! Each parking ticket records the state of the offending car. As you'd expect, most ticketed cars come from the DC area, but nearby Maryland eclipses DC for first place. \`\`\`{r states}
+
+count(april16$RP\_PLATE\_S) %&gt;% tbl\_df %&gt;% setNames(c("State", "Tickets")) %&gt;% dplyr::arrange(desc(Tickets)) %&gt;% top\_n(3) %&gt;% ggplot(., aes(x = State, y = Tickets)) + geom\_bar(stat="identity") + ggtitle("Most frequent states") + theme\_bw()
+
+state.name\[match(april16$RP\_PLATE\_S, state.abb)\] %&gt;% tolower %&gt;% table %&gt;% data.frame %&gt;% setNames(c("region", "value")) %&gt;% state\_choropleth
+
+\`\`\`
+
+Default language (will delete later)
+====================================
+
 GitHub Documents
 ----------------
 
@@ -36,6 +68,6 @@ Including Plots
 
 You can also embed plots, for example:
 
-`{r pressure, echo=FALSE} plot(pressure)`
+`{r pressure, echo=TRUE} plot(pressure)`
 
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
