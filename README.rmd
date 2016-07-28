@@ -1,12 +1,18 @@
-README
-================
+---
+title: "README"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+```
 
 Parking tickets. The dread of city dwellers everywhere. The Washington DC government has published a wealth of data about the tickets it hands out through its excellent opendata.dc.gov portal. This provides an interesting opportunity for data-minded people. I initially planned to merge shapefiles covering the past year, but there are so many rows in each dataset that I realized combining would have made it difficult for others to reproduce my analysis. Therefore this analysis uses the most recent shapefile, which contains data for April, 2016.
 
-Analysis
---------
+## Analysis
 
-``` r
+```{r data, warning = FALSE, message=FALSE}
 library(magrittr)
 library(ggplot2)
 library(scales)
@@ -23,49 +29,39 @@ unzip("./data/Parking_Violations_in_April_2016.zip", exdir = "./data", overwrite
 
 # Read the shapefile
 april16 <- readOGR(dsn = "./data" , layer = "Parking_Violations_in_April_2016")
+
 ```
 
-    ## OGR data source with driver: ESRI Shapefile 
-    ## Source: "./data", layer: "Parking_Violations_in_April_2016"
-    ## with 260405 features
-    ## It has 17 fields
-
-Analysis
---------
-
+## Analysis
 Let's dive into the data! Let's see what happens when we visualize the data using base r's plot command.
-
-``` r
+```{r baseplot, warning = FALSE}
 plot(april16)
 ```
-
-![](README_files/figure-markdown_github/baseplot-1.png) Not very useful. All you see are markings in the shape of Washington DC. We can safely conclude that parking tickets are issued all over the District. But the tickets evenly distributed or are there hotspots where more tickets are given out than other places? Let's answer that question using base R's smoothScatter function.
-
-``` r
+Not very useful. All you see are markings in the shape of Washington DC. We can safely conclude that parking tickets are issued all over the District. But the tickets evenly distributed or are there hotspots where more tickets are given out than other places? Let's answer that question using base R's smoothScatter function.
+```{r smoothScatter, warning = FALSE, fig.height=6, fig.width=6}
 april16@coords %>%
   smoothScatter(axes = FALSE, xlab = "", ylab = "")
-```
 
-![](README_files/figure-markdown_github/smoothScatter-1.png)
+```
 
 It looks like there's some clustering around downtown, but the chart is blurry and doesn't tell us how many tickets were issued in each area. The hexbin package can help us here.
 
-``` r
+```{r hexbin, warning = FALSE, fig.height=6, fig.width=6}
 # For the plot command I modified the color selection from this gist:
 # https://gist.github.com/cameronbracken/317960
 april16@coords %>%
   hexbin %>%
   plot(.,colramp=colorRampPalette(c('green','red')),border=gray(.75), xlab = "", ylab = "")
+
 ```
+Much better! We can see that the downtown effect is larger than smoothScatter suggested. We can also clearly see holes in the data where there are parks and rivers.
 
-![](README_files/figure-markdown_github/hexbin-1.png) Much better! We can see that the downtown effect is larger than smoothScatter suggested. We can also clearly see holes in the data where there are parks and rivers.
 
-States
-------
+## States
 
 Each parking ticket records the state of the offending car. As you'd expect, most ticketed cars come from the DC area, but nearby Maryland eclipses DC for first place.
+```{r states_bar, warning = FALSE}
 
-``` r
 summary_state <- april16$RP_PLATE_S %>%
   as.character() %>%
   table() %>%
@@ -81,29 +77,26 @@ ggplot(summary_state, aes(x = State, y = Tickets)) +
   geom_bar(stat="identity") +
   ggtitle("Most frequent states") +
   theme_bw()
+
 ```
 
-![](README_files/figure-markdown_github/states_bar-1.png)
-
 What about other states? Let's look at a map of the entire country to see whose drivers are ticketed the most. You see high numbers of tickets throughout the Northeast Corridor. Unsurprisingly, very few tickets are given to cars from Alaska or Hawaii.
+```{r states_national, warning = FALSE, fig.width=8}
 
-``` r
 state.name[match(as.character(april16$RP_PLATE_S), state.abb)] %>%
   tolower %>%
   table %>% 
   data.frame %>%
   setNames(c("region", "value")) %>%
   state_choropleth
+
 ```
 
-![](README_files/figure-markdown_github/states_national-1.png)
-
-Putting it all together
------------------------
+## Putting it all together
 
 Let's combine our two analyses. Is there a difference in the percentage of parking tickets that are given to locals versus people from other states based on where in the city the ticket is issued? In order to be as methodical as possible, I'll put a grid over the entire city and aggregate the percentages of locals vs. non-locals in each cell of the grid.
 
-``` r
+```{r fishnet, warning = FALSE}
 # Special thanks to this thread for helping me create the grid:
 # http://gis.stackexchange.com/questions/88830/overlay-a-spatial-polygon-with-a-grid-and-check-in-which-grid-element-specific-c
 bb <- bbox(april16)
@@ -131,8 +124,7 @@ xy <- april16@data %>%
 sp_grd@data <- left_join(sp_grd@data, xy)
 
 spplot(sp_grd, "tourist")
-```
 
-![](README_files/figure-markdown_github/fishnet-1.png)
+```
 
 The analysis shows substantial variation based on the part of the city. White cells are outside of the District's borders and can be ignored. The north and west parts of the city clearly have more tickets being given to non-DC residents.
